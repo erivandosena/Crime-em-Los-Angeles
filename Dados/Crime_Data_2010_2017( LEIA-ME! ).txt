@@ -1,0 +1,5 @@
+Baixe o conjunto de dados: "Crime_Data_2010_2017.csv" de:
+https://www.kaggle.com/cityofLA/crime-in-los-angeles/downloads/Crime_Data_2010_2017.csv
+
+Você também pode querer utilizar o "Crimes - 2001 to present" em:
+https://data.cityofchicago.org/api/views/ijzp-q8t2/rows.csv?accessType=DOWNLOAD
