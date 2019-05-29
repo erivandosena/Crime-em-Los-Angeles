@@ -1,5 +1,5 @@
 # Crime-em-Los-Angeles
 
-Análise da Autocorrelação Espacial do Crime em Los Angeles
+Autocorrelação Espacial do Crime de Los Angeles
 
-Código da reapresentação em Português com adaptações sobre a análise de Ambarish Ganguly referente método de cálculo de correlação espacial em R do Crime em Los Angeles extraído da Comunidade dos Cientistas de Dados (Kaggle).
+O objetivo desta versão adaptada utilizando R Notebook é reapresentar à análise realizada no idioma Português Brasileiro para que mais pessoas possam obter acesso ao conteúdo publicado originalmente em inglês na Comunidade Kaggle.

@@ -1,10 +1,24 @@
 ---
 title: "Autocorrelação Espacial do Crime de Los Angeles"
-author: "Erivando Sena (Com adaptações do original R Notebook de Ambarish Ganguly)"
-email: "erivandosena@gmail.com"
+author: "Erivando Sena (Com adaptações do original de Ambarish Ganguly)"
 date: "22 de maio de 2019"
-output: html_notebook
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+  html_notebook: default
+  word_document: default
+  html_document: default
+  pdf_document: default
+email: erivandosena@gmail.com
 ---
+
+<!-- 
+Este é um bloco de notas [R Markdown](http://rmarkdown.rstudio.com). Quando você executa código no bloco de anotações, os resultados aparecem abaixo do código.  
+Tente executar este pedaço clicando no botão *Run* dentro do pedaço ou colocando o cursor dentro dele e pressionando *Ctrl + Shift + Enter*. 
+-->
+
+> *O objetivo desta versão adaptada utilizando R Notebook é reapresentar à análise realizada no idioma Português Brasileiro para que mais pessoas possam obter acesso ao conteúdo publicado originalmente em inglês na [Comunidade Kaggle](https://www.kaggle.com/cityofLA/crime-in-los-angeles){target="_top"}.*
    
 ## Introdução
 
@@ -15,28 +29,33 @@ A base deste trabalho é a Primeira Lei da Geografia de Tobler: "tudo está rela
 Assim, usando o conjunto de dados([Dados de Crime Polícia de Los Angeles](https://data.lacity.org/A-Safe-City/Crime-Data-from-2010-to-Present/y8tr-7khq){target="_top"}), veremos se o crime em Los Angeles([Analisado na Comunidade Kaggle](https://www.kaggle.com/cityofLA/crime-in-los-angeles){target="_top"}) é espacialmente autocorrelacionado e identificamos os clusers usando o LISA (Local Measure of Spatial Association).  
 
 #### Autocorrelação Espacial
-```{r imagem, echo = TRUE, out.width = '100%'}
+```{r, echo = TRUE, warning = FALSE, message = FALSE, out.width = '100%'}
 
-# Exibindo imagem
+# Exibindo imagem.
 knitr::include_graphics("./Spatial_Autocorrelation.jpg")
 
 ```
 
 #### Preparando o ambiente
-```{r configuracao, echo = TRUE, warning = FALSE}
+```{r, echo = TRUE, warning = FALSE, message = FALSE}
 # Setando idioma e local da pasta de trabalho
 Sys.setlocale("LC_ALL", "Portuguese_Brazil.1252")
 setwd("E:/Outras Analises R/Crime-em-Los-Angeles")
- 
-# Instalando pacotes
-pacotes <- c('tidyverse', 'classInt', 'maptools', 'rgdal', 'RColorBrewer', 'spdep', 'tmap')
-local_lib <- "C:/PROGRA~1/R/R-3.6.0/library"
-new.packages <- pacotes[!(pacotes %in% installed.packages()[,"Package"])] 
-if(length(new.packages)) {
-  install.packages(pacotes, dep = TRUE) 
+
+# Setando codificacao para representar qualquer caractere universal padrao Unicode.
+options(encoding="UTF-8")
+
+# Verificar e instalar o(s) pacote(s) a utilizar na analise.
+pacotes_analise <- c('tidyverse', 'classInt', 'maptools', 'rgdal', 'RColorBrewer', 'spdep', 'tmap')
+# Necessarios apenas para RMarkdown.
+pacotes_padrao <- c("installr","rmarkdown","tinytex","prettydoc") 
+if (length(setdiff(c(pacotes_padrao, pacotes_analise), rownames(installed.packages()))) > 0) {
+  install.packages(setdiff(c(pacotes_padrao, pacotes_analise), rownames(installed.packages()))) 
+  # RMarkdown precisa de Pandoc e MiKTeX instalados. https://miktex.org/2.9/setup.
+  install.pandoc() 
 }
  
-# Importando bibliotecas
+# Importando bibliotecas.
 library(tidyverse)
 library(classInt)
 library(maptools)
@@ -49,20 +68,23 @@ library(tmap)
 ```
 
 #### Preparação dos dados
-```{r dados, echo = TRUE, warning = FALSE}
-# Importando Dados
+```{r, echo = TRUE, warning = FALSE, message = FALSE, cache = TRUE}
+
+# Importando Dados.
 districts <- readOGR(dsn = "./LAPD_Reporting_Districts.shp")
 crime = read.csv("../Dados/Crime_Data_2010_2017.csv")
  
 head(crime,5)
 head(districts@data, 5)
+
 ```
 
 Observando rapidamente os dados, podemos ver que o shapefile é composto de 1135 recursos diferentes. Isto corresponde ao distrito declarante em LA: crime$Reporting.District and districts@data$REPDIST.  
 
 Usando as colunas comuns, podemos tentar mesclar os dados. Primeiro precisamos somar o número de crimes em cada distrito.
 
-```{r echo = TRUE, warning = FALSE}
+```{r, echo = TRUE, warning = FALSE, message = FALSE}
+
 w <- table(crime$Reporting.District)
 rep.dis <- as.data.frame(w)
 length(unique(rep.dis$Var1))
@@ -72,7 +94,7 @@ head(rep.dis, 5)
 
 Como podemos ver acima, o número de valores únicos não é igual ao número de recursos no shapefile, isto representa 0 crimes cometidos nesses distritos. Portanto, ao entrar, mantemos essas colunas usando "all.x = TRUE". Isso significa que mantemos todas as linhas de dados no shapefile. Estes retornam resultados de NA, por padrão, então mudamos isso com a segunda linha de código.
 
-```{r echo = TRUE, warning = FALSE}
+```{r, echo = TRUE, warning = FALSE, message = FALSE}
 districts@data <- merge(districts@data, rep.dis, by.x = "REPDIST", by.y = "Var1", all.x = TRUE)
 districts$Freq[is.na(districts$Freq)] <- 0
 length(districts$Freq)
@@ -80,13 +102,15 @@ length(districts$Freq)
 
 ### Plotando Freqüência Criminal
 
-```{r echo = TRUE, warning = FALSE}
+```{r echo = TRUE, warning = FALSE, message = FALSE}
+
 var <- districts@data[,"Freq"]
 breaks <- classIntervals(var, n = 9, style = "fisher")
 my_colours <- rev(brewer.pal(9, "RdBu"))
 plot(districts, col = my_colours[findInterval(var, breaks$brks, all.inside = TRUE)],   
        axes = FALSE, border = NA)
 legend(x = -118.7, y = 34, legend = leglabs(breaks$brks), fill = my_colours, bty = "n", cex = 0.6)
+
 ```
 
 Uma rápida visão geral da trama mostra a maioria dos distritos com menores contagens de crimes denunciados. Existem casos esporádicos de altas contagens, especialmente em áreas ao norte, o que poderia sugerir uma autocorrelação espacial próxima a zero, representando a aleatoriedade na distribuição espacial dos dados.
@@ -102,20 +126,24 @@ A autocorrelação espacial pode ser representada de duas maneiras: global ou lo
 
 Primeiro temos que atribuir neibourghs a cada um dos distritos. Existem 2 métodos para fazer isso: Rook ou Queen. Podemos traçar as ligações entre os distritos vizinhos para visualizar sua distribuição no espaço.
 
-```{r echo = TRUE, warning = FALSE}
+```{r, echo = TRUE, warning = FALSE, message = FALSE}
+
 neighbours <- poly2nb(districts)
 neighbours
 plot(districts, border = 'lightgrey')
 plot(neighbours, coordinates(districts), add=TRUE, col='red')
+
 ```
 
 
-```{r echo = TRUE, warning = FALSE}
+```{r, echo = TRUE, warning = FALSE, message = FALSE}
+
 neighbours2 <- poly2nb(districts, queen = FALSE)
 neighbours2
 plot(districts, border = 'lightgrey')
 plot(neighbours, coordinates(districts), add=TRUE, col='blue')
 plot(neighbours2, coordinates(districts), add=TRUE, col='red')
+
 ```
 
 Podemos ver que o segundo método (Rook) retorna muito menos links e podemos interpretar visualmente a diferença.  
@@ -126,7 +154,7 @@ Agora que temos vizinhos, precisamos convertê-los.
 
 Então podemos executar o teste de um moran. Isso cria um valor de correlação entre -1 e 1, a distribuição espacial desses valores é vista na figura da Introdução. 1 representa autocorrelação espacial positiva perfeita, 0 mostra que os dados são distribuídos aleatoriamente e -1 é autocorrelação espacial negativa.
 
-```{r echo = TRUE, warning = FALSE}
+```{r, echo = TRUE, warning = FALSE, message = FALSE}
 
 listw <- nb2listw(neighbours)
 listw
@@ -139,16 +167,20 @@ A estatística Global Moran I é de 0,085, mostrando que a frequência de crimes
 ### Autocorrelação Espacial Local
 Em primeiro lugar, criamos um gráfico moran olhando para cada um dos valores plotados em relação aos seus valores espacialmente defasados. Explora a relação entre os dados e seus vizinhos.
 
-```{r echo = TRUE, warning = FALSE}
+```{r, echo = TRUE, warning = FALSE, message = FALSE}
+
 moran <- moran.plot(districts$Freq, listw = nb2listw(neighbours2, style = "W"))
+
 ```
 
 A partir do gráfico de dispersão, sugere potencialmente que a frequência dos crimes de cada distrito seja aleatória. Vamos tentar mapeá-lo.
 
-```{r echo = TRUE, warning = FALSE}
+```{r, echo = TRUE, warning = FALSE, message = FALSE}
+
 local <- localmoran(x = districts$Freq, listw = nb2listw(neighbours2, style = "W"))
 moran.map <- cbind(districts, local)
 tm_shape(moran.map) + tm_fill(col = "Ii", style = "quantile", title = "local moran statistic")
+
 ```
 
 Um valor positivo indica que o distrito é cercado por distritos de valor semelhante.
@@ -157,16 +189,17 @@ Do mapa, podemos ver que, em grande parte, nos distritos de LA, não há relaç�
 
 ### LISA
 
-```{r echo = TRUE, warning = FALSE}
+```{r, echo = TRUE, warning = FALSE, message = FALSE}
+
 quadrant <- vector(mode="numeric",length=nrow(local))
  
-# Centraliza a variável de interesse em torno de sua média
+# Centraliza a variável de interesse em torno de sua média.
 m.crime <- districts$Freq - mean(districts$Freq)     
  
-# Centraliza Moran´s local em torno da média
+# Centraliza Moran´s local em torno da média.
 m.local <- local[,1] - mean(local[,1])    
  
-# Limiar de significância
+# Limiar de significância.
 signif <- 0.1 
  
 # Constrói um quadrante de dados
@@ -183,6 +216,7 @@ plot(districts,border="lightgray",col=colors[findInterval(quadrant,brks,all.insi
 box()
 legend(x = -118.7, y = 34,legend=c("insignificant","low-low","low-high","high-low","high-high"),
        fill=colors,bty="n")
+
 ```
 
 ## Conclusão
